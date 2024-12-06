@@ -1,0 +1,47 @@
+name: Test and build frontend
+
+env: 
+  REGISTRY_USERNAME: nologin
+
+on: 
+  push: 
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: 
+
+jobs:
+  build: 
+    runs-on: ubuntu-latest
+    steps:
+      - name: Copy code to machine
+        uses: actions/checkout@v4
+
+      - name: Install node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Build application
+        run: npm ci # permet de faire npm install mais beaucoup plus vite
+      
+      - name: Run lint test
+        run: npm run lint
+
+      - name: Build application
+        run: npm build
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: rg.fr-par.scw.cloud/polytech-2024
+          username: ${{ env.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: rg.fr-par.scw.cloud/polytech-2024/michelet/frontend-image:v1
+          context: .
